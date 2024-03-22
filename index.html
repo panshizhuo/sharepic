@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;">
+	<!-- import CSS -->
+	<link rel="stylesheet" href="./css/element-ui.css">
+	<link rel="icon" href="./favicon.ico" />
+	<!-- <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"> -->
+</head>
+<style>
+	html {
+		width: 100vw;
+	}
+
+	.btn-box {
+		margin: 0 auto 5px;
+		text-align: center;
+	}
+
+	.btn {
+		/* width: 20vh; */
+		/* height: 10vh; */
+		/* font-size: 2vh; */
+		margin: 0 auto;
+	}
+
+	.img-box {
+		width: 100%;
+		background-color: gainsboro;
+		margin: 0 auto;
+	}
+
+	.img-box .image {
+		width: 100%;
+		display: block;
+		margin: 0 auto;
+	}
+
+	.video-box {
+		width: 100%;
+		background-color: gainsboro;
+		margin: 0 auto;
+	}
+
+	.el-message-box {
+		/* width: 50vw; */
+		width: 65%;
+		background-image: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+	}
+
+	.v-modal {
+		/* background: #fff; */
+		background-image: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+	}
+
+	[v-cloak] {
+		display: none;
+	}
+</style>
+
+<body>
+	<div id="app" v-cloak>
+		<div class="btn-box" v-if="btnvisible">
+			<!-- <el-button class="btn" type="primary" @click="showdata">点我展示图集</el-button> -->
+			<!-- <el-button class="btn" type="primary" @click="open">点我展示图集</el-button> -->
+		</div>
+
+		<div class="img-box" v-if="visible">
+			<img class="image" :src="item" v-for="(item, index) in proxyImagelist" :key="index" alt=""
+				referrerpolicy="no-referrer">
+			<!-- <el-image class="image" :src="item" v-for="(item, index) in proxyImagelist" :key="index" lazy
+				referrerpolicy="no-referrer"></el-image> -->
+		</div>
+
+		<div class="video-box" v-if="visible" id="video-box">
+			<hr />
+			<!-- <video  :src="item" class="video" v-for="(item,index) in videolisturl" :key="index"></video> -->
+			<div id="video"></div>
+			<video src="" controls></video>
+		</div>
+	</div>
+</body>
+<!-- import Vue before Element -->
+<script src="./js/vue.js"></script>
+<!-- import JavaScript -->
+<script src="./js/element-ui.js"></script>
+<script src="./js/axios.js"></script>
+<script src="./js/hls.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/nplayer@latest/dist/index.min.js"></script> -->
+<script src="https://cdn.bootcdn.net/ajax/libs/dplayer/1.27.1/DPlayer.min.js"></script>
+
+<script>
+	new Vue({
+		el: '#app',
+		data: function () {
+			return {
+				visible: false,
+				btnvisible: true,
+				proxyhost: "https://imageproxy2.pages.dev/newproxy?url=",
+				imgneedproxy: false,
+				videolisturl: [],
+				imglist: []
+			}
+		},
+		computed: {
+			proxyImagelist() {
+				return this.imglist.map(item => {
+					if (this.imgneedproxy) {
+						return this.proxyhost + item;
+					} else {
+						return item;
+					}
+				})
+			}
+		},
+		methods: {
+			// 点击按钮
+			showdata() {
+				this.visible = !this.visible;
+				// console.log('this.videolisturl.length :>> ', this.videolisturl.length);
+				// console.log('this.videolisturl :>> ', this.videolisturl);
+				if (this.visible && this.videolisturl.length > 0) {
+					this.$nextTick(async () => {
+						// const hls = new Hls();
+						// const player = new NPlayer.Player({})
+						// // console.log('1111');
+						// hls.loadSource(this.videolisturl[0])
+						// // console.log('2222');
+						// hls.attachMedia(player.video)
+						// // console.log('333');
+						// player.mount('#video')
+
+						// 判断是MP4还是M3U8
+						// console.log('/MP4/.test(this.videolisturl[0]) :>> ', /MP4/ig.test(this.videolisturl[0]));
+						if (/MP4/ig.test(this.videolisturl[0])) {
+							const player = new DPlayer({
+								container: document.getElementById("video"),
+								autoplay: false,
+								hotkey: true,
+								theme: "#f87171",
+								// preload: "metadata",
+								screenshot: true,
+								video: {
+									url: this.videolisturl[0]
+								},
+							});
+						} else {
+							const player = new DPlayer({
+								container: document.getElementById("video"),
+								autoplay: false,
+								hotkey: true,
+								theme: "#f87171",
+								// preload: "metadata",
+								screenshot: true,
+								video: {
+									url: this.videolisturl[0],
+									pic: "//img.zcool.cn/community/017ccc599d4688a80121ad7bc36541.gif",
+									type: "customHls",
+									customType: {
+										customHls: function (video, player) {
+											const hls = new Hls();
+											hls.loadSource(video.src);
+											hls.attachMedia(video);
+										},
+									},
+								},
+							});
+						}
+
+					})
+				}
+
+			},
+			open() {
+				this.$prompt('输入提示码?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+				}).then((event) => {
+					// console.log(event.value);
+					// 根据输入的情况展示数据
+					// console.log('event.value :>>', event.value.replace(/\s+/g, ""));
+					this.requestdata(event.value.trim());
+					// 如果请求正确，那么就展示内容
+					// 如果请求错误，那么进行提示信息
+				}).catch((event) => {
+					console.log(event);
+					console.log('未输入任何内容');
+				});
+			},
+			// 请求数据
+			async requestdata(inputcontent) {
+				try {
+					const url = ("https://imgurlstore.pages.dev/public/" + inputcontent +
+						".json").replace(/\s+/g, "");
+					// console.log('url :>> ', url);
+					const res = await axios({
+						method: 'get',
+						url: url
+					})
+					// console.log('res :>> ', JSON.stringify(res.data, null, '  '));
+					this.imglist = res.data[0]['imglist'];
+					this.videolisturl = res.data[0]['videolist'];
+					this.imgneedproxy = res.data[0]['note']['imgneedproxy'];
+					this.showdata();
+					// 结果显示之后，点击按钮隐藏，做到只展示一次
+					this.btnvisible = false;
+				} catch (error) {
+					console.log('error :>> ', "出错了", error);
+					this.btnvisible = true;
+					this.$message({
+						type: 'info',
+						message: '输入错误',
+						duration: 800
+					});
+				}
+
+			}
+		},
+		mounted() {
+			this.open();
+		}
+	})
+</script>
+
+<script>
+
+</script>
+
+</html>
